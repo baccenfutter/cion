@@ -1,0 +1,40 @@
+#!/bin/bash
+
+zone="$1"
+srv="$2"
+proto="$3"
+prio="$4"
+weight="$5"
+port="$6"
+dest="$7"
+
+[[ -z $zone ]] && echo "Missing parameter: zone" && exit 1
+[[ -z $srv ]] && echo "Missing parameter: srv" && exit 1
+[[ -z $proto ]] && echo "Missing parameter: proto" && exit 1
+[[ -z $prio ]] && echo "Missing parameter: prio" && exit 1
+[[ -z $weight ]] && echo "Missing parameter: weight" && exit 1
+[[ -z $port ]] && echo "Missing parameter: port" && exit 1
+[[ -z $dest ]] && echo "Missing parameter: dest" && exit 1
+
+CION_TTL="${CION_TTL:-180}"
+CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
+
+record_update() {
+    IFS=$'\n' old_records=( $(dig @localhost _${srv}._${proto}.${zone} SRV +short | grep "${prio} ${weight}") )
+    
+    echo "server 127.0.0.1"
+    echo "zone ${zone}"
+
+    for record in "${old_records[@]}"; do
+        echo "update delete _${srv}._${proto}.${zone} ${CION_TTL} IN SRV ${record}"
+    done
+    echo "update add _${srv}._${proto}.${zone} ${CION_TTL} IN SRV ${prio} ${weight} ${port} ${dest}"
+    echo "send"
+    echo "quit"
+}
+
+if [[ -n $CION_DEPLOY_UPDATE ]]; then
+    record_update | nsupdate -k named.conf.rndc
+else
+    record_update
+fi

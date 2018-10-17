@@ -1,0 +1,17 @@
+ns:
+  build: .
+  volumes:
+    - ".cion_key_data:/etc/bind/keys:rw"
+    - ".cion_zone_config:/etc/bind/zones:rw"
+    - ".cion_zone_files:/var/bind/dyn:rw"
+    - "./public:/public:rw"
+
+  ports:
+    - "1234:80/tcp"
+    - "5553:53/udp"
+    - "5553:53/tcp"
+
+  environment:
+    CION_ROOT_DOMAIN: foo.bar
+    CION_NS_ADDRESS: 127.0.0.1
+    CION_NS_HOSTNAME: ns

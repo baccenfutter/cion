@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>xcion.cloud - XCion DynDNS Community Service</title>
+<link href="/static/style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+<div id="container">
+<div id="header">
+<h1>XCion.Cloud DynDNS SaaS <br /><small>version 1.0.0</small></h1>
+<br />
+</div>
+<!-- div id="navigation"><a href="#"><img src="images/home.jpg" alt="Return Home"  border="0" class="navicons" /></a><a href="#"><img src="images/forum.jpg" alt="Enter Forum" width="16" height="16" border="0" class="navicons" /></a><a href="#"><img src="images/calendar.jpg" alt="View Calendar" width="16" height="16" border="0" class="navicons" /><img src="images/feed.jpg" alt="RSS Feed" width="16" height="16" border="0" class="navicons" /></a></div -->
+<div id="vertinav">
+<span class="navigation_header">xcion.cloud</span>
+<ul>
+<li><a href="/">Home</a></li>
+</ul>
+<br />
+<!-- span class="navigation_header">Heading</span>
+<ul>
+<li><a href="#">Lynk One  </a></li>
+<li><a href="#">Link Two </a></li>
+<li><a href="#">Linke Three</a></li>
+<li><a href="#">Leenk Four </a></li>
+</ul><br / >
+<span class="navigation_header">Linktastic!</span>
+<ul>
+<li><a href="http://www.famfamfam.com">FamFamFam</a></li>
+<li><a href="http://www.opendesigns.org">Open Designs</a></li>
+<li><a href="http://www.zilladesigns.net">Zilla Designs</a></li>
+</ul -->
+</div>
+<div id="content">
+<p>
+This is XCion.Cloud - a DynDNS SaaS provider for the internet of things.
+</p>
+<p>
+XCion.Cloud provides an easy to use HTTP interface with which users can register their own
+public namespace at <code>*.xcion.cloud</code> for managing and regularly updating their
+dynamically changing SRV records.
+</p>
+<p>
+XCion.Cloud leverages the popular open-source nameserver <code>Bind9</code> and simply
+translates valid HTTP requests into dynamic DNS updates (RFC-2136).
+</p>
+<br />
+<hr />
+<br />
+<h2>Usage</h2>
+<h3>Registering a Namespace</h3>
+<p>
+Registering namespaces follows the first-come-first-serve principle. If your favourite
+namespace happens to be already registered, simply try registering for a different one.
+<p>
+<pre>
+curl \
+  -X PUT \
+  -H "Accept: application/json; version=1.0.0" \
+  -H "Content-Type: application/json" \
+  -d '{"zone": "example"}' \
+  https://xcion.cloud/register
+</pre>
+<p>
+If the desired namespace has already been registered by another user, the call will return an
+HTTP-423 (LOCKED). Otherwise it returns an HTTP-202 (ACCEPTED) together with a token for
+authenticating as the registrant of this namespace in all subsequent calls.
+</p>
+<p>
+Please keep a secure backup of this token as loosing it will result in loss of control over your
+registered namespace. Namespaces that do not receive any zone updates for 60 days, will
+automatically be garbage-collected. After another week the namespace will be deleted and
+made available again for for registration.
+</p>
+<h3>Creating and updating records</h3>
+<p>
+Once the zone has been successfully registered SRV records can be added and updated by
+posting to your zone in form of POST request parameters. Always pass your
+<code>X-Cion-Auth-Key</code> to authorize you requests.
+</p>
+<pre>
+curl \
+  -X POST \
+  -H "Accept: application/json; version=1.0.0" \
+  -H "Content-Type: application/json" \
+  -H "X-Cion-Auth-Token: 0123456789abcdef" \
+  -d '{"srv":"matrix","proto":"tcp","prio":10,"weight":0,"port":8448,"dest":"127.0.0.1"}' \
+  https://xcion.cloud/zone/example
+</pre>
+<p>
+
+</p>
+<p>
+The request parameters are:
+</p>
+<ul>
+<li><strong>srv</strong> - Name of the service <small>(without the preceding underscore)</small></li>
+<li><strong>proto</strong> - Protocol under which the service is available <small>(again, no underscore)</small></li>
+<li><strong>prio</strong> - Record priority <small>(lower values have higher priority)</small></li>
+<li><strong>weight</strong> - Record weight <small>(higher values have higher priority)</small></li>
+<li><strong>port</strong> - Port under which your serice is available</li>
+<li><strong>dest</strong> - Endpoint of your service <small>(IP or hostname / hostnames must end with period)</small></li>
+</ul>
+<p>
+For more details on the record fields see:
+<a href="https://en.wikipedia.org/wiki/SRV_record" target="_blank">Wikipedia</a>.
+</p>
+<p>
+The above request would create the following DNS record:
+</p>
+<pre>
+_matrix._tcp.example.xcion.cloud. 180	IN	SRV	10 0 8448 127.0.0.1
+</pre>
+<br />
+<hr />
+<br />
+<h2>Donation for the station</h2>
+<p>
+This service is payed for out of our own private pockets and provided to the internet for
+free. If you like it and want to see it survive, it would be very kind of you to provide
+a small but regular donation. Thank you for your consideration!
+</p>
+
+<pre>
+Bitcoin: 1DBw2AXePciyeKFWAJHwzUzSLxv8d3rVuq
+</pre>
+</div>
+<div id="footer" class="footer_text"><strong>Copyright &copy; 2006</strong> <a href="#">Your Name Here</a> <strong>Design By</strong> <a href="http://www.zilladesigns.net">Jeremy D</a></div>
+</div>
+</body>
+</html>

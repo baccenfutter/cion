@@ -1,0 +1,13 @@
+#!/bin/bash
+
+shopt -s nullglob
+
+CION_KEY_PATH="${CION_KEY_PATH:-/etc/bind/keys}"
+
+for f in ${CION_KEY_PATH}/*.key; do
+    chown named. "${f}"
+    base="$(basename "${f}")"
+    username="${base%.*}"
+    key="$(head -n 1 "${f}")"
+    echo "${username}" "${key}"
+done

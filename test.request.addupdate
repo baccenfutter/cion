@@ -1,0 +1,9 @@
+POST /zone/bacce HTTP/1.1
+Host: cion.local
+Accept: application/json; version=1.0.0
+Content-Type: application/json
+Content-Length: 81
+X-Cion-Auth-Key: 5232d67cf7d682d9e18d158d36ad7d1a1102ab9b6f3b19a400fb306bb7bf3fa6
+X-Cion-Mode: Debug
+
+{"srv":"matrix","proto":"tcp","prio":10,"weight":0,"port":8448,"dest":"foo.baz"}
