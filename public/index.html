@@ -52,8 +52,8 @@ translates valid HTTP requests into dynamic DNS updates (RFC-2136).
 <h2>Usage</h2>
 <h3>Registering a Namespace</h3>
 <p>
-Registering namespaces follows the first-come-first-serve principle. If your favourite
-namespace happens to be already registered, simply try registering for a different one.
+Registering namespaces follows the first-come-first-serve principle. Simply send a PUT
+request to <code>/register</code>, stating the desired namespace as parameter.
 <p>
 <pre>
 curl \
@@ -65,14 +65,15 @@ curl \
 </pre>
 <p>
 If the desired namespace has already been registered by another user, the call will return an
-HTTP-423 (LOCKED). Otherwise it returns an HTTP-202 (ACCEPTED) together with a token for
-authenticating as the registrant of this namespace in all subsequent calls.
+HTTP-423 (LOCKED). In that case, simply try registering for a different namespace instead. If
+the namespace is still vacant it returns an HTTP-202 (ACCEPTED) together with an authentication
+token.
 </p>
 <p>
-Please keep a secure backup of this token as loosing it will result in loss of control over your
-registered namespace. Namespaces that do not receive any zone updates for 60 days, will
+Please do keep a secure backup of this token as loosing it will result in loss of control over
+your registered namespace. Namespaces that do not receive any zone updates for 60 days, will
 automatically be garbage-collected. After another week the namespace will be deleted and
-made available again for for registration.
+made re-available for registration.
 </p>
 <h3>Creating and updating records</h3>
 <p>
