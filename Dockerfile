@@ -2,8 +2,9 @@ FROM golang:alpine as builder
 RUN apk add git
 ADD . /go/src/github.com/c-base/cion
 WORKDIR /go/src/github.com/c-base/cion
-RUN go get -d -v .
-RUN go install .
+RUN go get -v github.com/kardianos/govendor
+RUN govendor sync
+RUN govendor install +local
 
 
 FROM alpine:latest
