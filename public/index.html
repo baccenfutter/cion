@@ -122,6 +122,10 @@ created directly on you <code>*.xcion.cloud</code> zone. If an MX-type record wi
 preference <i>(pref)</i> already exists, it is overwritten with the new name. Multiple MX-type
 records are only supported if they have differing preferences.
 </p>
+<p>
+Please also note that the request will not be accepted if no A-type record could be found for
+the name specified in the <code>destination</code> parameter.
+</p>
 <h3 id="Updating SRV">SRV-type records</h3>
 <p>
 To create an SRV-type record within your zone, send a POST request as follows:
@@ -159,6 +163,25 @@ curl \
 TXT-type records do not support a <code>hostname</code> parameter, instead all records are
 always create directly within your <code>*.xcion.cloud</code> namespace. If another TXT-type
 record with the same name already exists, it is overwritten with the new one.
+</p>
+<h3 id="Updating CNAME">CNAME-type records</h3>
+<p>
+To create a CNAME record within your zone, send a POST request as follows:
+</p>
+<pre>
+curl \
+  -X POST \
+  -H "Accept: application/json; version=1.0.0" \
+  -H "Content-Type: application/json" \
+  -H "X-Cion-Auth-Key: ..." \
+  -H "X-Cion-Update-Type: CNAME" \
+  -d '{"name":"www1","dest":"www"}' \
+  https://xcion.cloud/zone/example
+</pre>
+<p>
+Note, that the <code>destination</code> parameter will always be prepended with
+<code>&lt;your-zone&gt;.xcion.cloud.</code> in order to prevent abuse (i.e. for fishing).
+CNAME-type records pointing to destinations outside of your zone is not supported.
 </p>
 <br />
 <hr />
