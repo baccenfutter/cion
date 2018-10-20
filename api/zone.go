@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -56,10 +57,10 @@ type (
 
 var (
 	// Some regular expressions for field validation.
-	validARecord  = regexp.MustCompile(`^[a-zA-Z0-9\-\.]{4,253}$`)
-	validService  = regexp.MustCompile(`^[a-zA-Z0-9]+?[a-zA-Z0-9\-]{1,61}$`)
-	validProto    = regexp.MustCompile(`^[a-zA-Z0-9]{1,16}$`)
-	validHostname = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]{4,253}$`)
+	validARecord  = regexp.MustCompile(`^([a-zA-Z0-9\-]+[a-zA-Z0-9]*){1,61}$`)
+	validService  = regexp.MustCompile(`^([a-zA-Z0-9]+[a-zA-Z0-9\-]*){1,61}$`)
+	validProto    = regexp.MustCompile(`^([a-zA-Z0-9]*){1,16}$`)
+	validHostname = regexp.MustCompile(`^([a-zA-Z0-9_\-\.]*){4,253}$`)
 	validIPv4     = regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`)
 )
 
@@ -72,15 +73,19 @@ var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
 
 func (aParams aRecordParams) isValid() bool {
 	if aParams.Hostname == "" {
+		log.Println("its the hostname", aParams.Hostname)
 		return false
 	}
 	if !validARecord.MatchString(aParams.Hostname) {
+		log.Println("its the hostname", aParams.Hostname)
 		return false
 	}
 	if aParams.Addr == "" {
+		log.Println("its the address")
 		return false
 	}
 	if !validIPv4.MatchString(aParams.Addr) {
+		log.Println("its the address")
 		return false
 	}
 	return true
