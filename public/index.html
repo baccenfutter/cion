@@ -17,21 +17,19 @@
 <span class="navigation_header">xcion.cloud</span>
 <ul>
 <li><a href="/">Home</a></li>
+<li><a href="#Donation">Donate</a></li>
 </ul>
 <br />
-<!-- span class="navigation_header">Heading</span>
+<span class="navigation_header">Usage</span>
 <ul>
-<li><a href="#">Lynk One  </a></li>
-<li><a href="#">Link Two </a></li>
-<li><a href="#">Linke Three</a></li>
-<li><a href="#">Leenk Four </a></li>
+<li><a href="#Registering">Registration</a></li>
+<li><a href="#Updating">Management</a></li>
 </ul><br / >
-<span class="navigation_header">Linktastic!</span>
+<span class="navigation_header">Community</span>
 <ul>
-<li><a href="http://www.famfamfam.com">FamFamFam</a></li>
-<li><a href="http://www.opendesigns.org">Open Designs</a></li>
-<li><a href="http://www.zilladesigns.net">Zilla Designs</a></li>
-</ul -->
+<li><a href="https://github.com/baccenfutter/cion" target="_blank">Code</a></li>
+<li><a href="https://github.com/baccenfutter/cion/issues" target="_blank">Issues</a></li>
+</ul>
 </div>
 <div id="content">
 <p>
@@ -43,14 +41,15 @@ public namespace at <code>*.xcion.cloud</code> for managing and regularly updati
 dynamically changing SRV records.
 </p>
 <p>
-XCion.Cloud leverages the popular open-source nameserver <code>Bind9</code> and simply
-translates valid HTTP requests into dynamic DNS updates (RFC-2136).
+XCion.Cloud leverages the popular open-source nameserver <code>Bind9</code> and
+really only translates the HTTP requests into dynamic DNS updates (RFC-2136) which it then
+executes locally.
 </p>
 <br />
 <hr />
 <br />
-<h2>Usage</h2>
-<h3>Registering a Namespace</h3>
+<h2 id="Usage">Usage</h2>
+<h3 id="Registering">Registering a Namespace</h3>
 <p>
 Registering namespaces follows the first-come-first-serve principle. Simply send a PUT
 request to <code>/register</code>, stating the desired namespace as parameter.
@@ -67,19 +66,22 @@ curl \
 If the desired namespace has already been registered by another user, the call will return an
 HTTP-423 (LOCKED). In that case, simply try registering for a different namespace instead. If
 the namespace is still vacant it returns an HTTP-202 (ACCEPTED) together with an authentication
-token.
+token that will be needed for managing your zone.
 </p>
 <p>
 Please do keep a secure backup of this token as loosing it will result in loss of control over
-your registered namespace. Namespaces that do not receive any zone updates for 60 days, will
+your registered namespace!
+</p>
+<p>
+Namespaces that do not receive any zone updates for 60 days, will
 automatically be garbage-collected. After another week the namespace will be deleted and
 made re-available for registration.
 </p>
-<h3>Creating and updating records</h3>
+<h3 id="Updating">Creating and updating records</h3>
 <p>
 Once the zone has been successfully registered SRV records can be added and updated by
-posting to your zone in form of POST request parameters. Always pass your
-<code>X-Cion-Auth-Key</code> to authorize you requests.
+POSTing some request parameters as follows. Please remember to always pass your
+<code>X-Cion-Auth-Key</code> to authorize your requests.
 </p>
 <pre>
 curl \
@@ -117,7 +119,7 @@ _matrix._tcp.example.xcion.cloud. 180	IN	SRV	10 0 8448 127.0.0.1
 <br />
 <hr />
 <br />
-<h2>Donation for the station</h2>
+<h2 id="Donation">Donation for the station</h2>
 <p>
 This service is payed for out of our own private pockets and provided to the internet for
 free. If you like it and want to see it survive, it would be very kind of you to provide
