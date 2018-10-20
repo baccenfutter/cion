@@ -21,7 +21,7 @@ record_update() {
     for old_record in "${old_records[@]}"; do
         echo "update delete ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN CNAME ${old_record}"
     done
-    echo "update add ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN CNAME ${name}."
+    echo "update add ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN CNAME ${name}.${zone}.${CION_ROOT_DOMAIN}".
     echo "send"
     echo "quit"
 }
