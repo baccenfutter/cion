@@ -9,12 +9,12 @@
 <body>
 <div id="container">
 <div id="header">
-<h1>XCion.Cloud<br /><small>version 1.0.0-beta</small></h1>
+<h1>XCion.Cloud IoT DynDNS SaaS<br /><small>version 1.0.0-beta</small></h1>
 <br />
 </div>
 <!-- div id="navigation"><a href="#"><img src="images/home.jpg" alt="Return Home"  border="0" class="navicons" /></a><a href="#"><img src="images/forum.jpg" alt="Enter Forum" width="16" height="16" border="0" class="navicons" /></a><a href="#"><img src="images/calendar.jpg" alt="View Calendar" width="16" height="16" border="0" class="navicons" /><img src="images/feed.jpg" alt="RSS Feed" width="16" height="16" border="0" class="navicons" /></a></div -->
 <div id="vertinav">
-<span class="navigation_header">xcion.cloud</span>
+<span class="navigation_header">XCion.Cloud</span>
 <ul>
 <li><a href="/">Home</a></li>
 <li><a href="#Donation">Donate</a></li>
@@ -23,7 +23,10 @@
 <span class="navigation_header">Usage</span>
 <ul>
 <li><a href="#Registering">Registration</a></li>
-<li><a href="#Updating">Management</a></li>
+<li><a href="#Updating A">A-type</a></li>
+<li><a href="#Updating MX">MX-type</a></li>
+<li><a href="#Updating SRV">SRV-type</a></li>
+<li><a href="#Updating TXT">TXT-type</a></li>
 </ul><br / >
 <span class="navigation_header">Community</span>
 <ul>
@@ -36,14 +39,18 @@
 This is XCion.Cloud - a DynDNS SaaS provider for the internet of things.
 </p>
 <p>
-XCion.Cloud provides an easy to use HTTP interface with which users can register their own
-public namespace at <code>*.xcion.cloud</code> for managing and regularly updating their
-dynamically changing SRV records.
+XCion.Cloud offers a free DynDNS service for A, MX, SRV and TXT records with no strings
+attached. Users can easily register namespaces and then create and manage records by simply
+sending HTTP requests.
 </p>
 <p>
 XCion.Cloud leverages the popular open-source nameserver <code>Bind9</code> and
 really only translates the HTTP requests into dynamic DNS updates (RFC-2136) which it then
 executes locally.
+</p>
+<p>
+All records reside within a single Bind9 zonefile which is replicated to a secondary
+nameserver whenever an update is performed on the zone.
 </p>
 <br />
 <hr />
@@ -66,7 +73,8 @@ curl \
 If the desired namespace has already been registered by another user, the call will return an
 HTTP-423 (LOCKED). In that case, simply try registering for a different namespace instead. If
 the namespace is still vacant it returns an HTTP-202 (ACCEPTED) together with an authentication
-token that will be needed for managing your zone.
+token that will be needed for managing your zone. Pass it as <code>X-Cion-Auth-Key</code> in
+all of your subsequent requests to authenticate as owner for the zone.
 </p>
 <p>
 Please do keep a secure backup of this token as loosing it will result in loss of control over
@@ -77,45 +85,81 @@ Namespaces that do not receive any zone updates for 60 days, will
 automatically be garbage-collected. After another week the namespace will be deleted and
 made re-available for registration.
 </p>
-<h3 id="Updating">Creating and updating records</h3>
+<h3 id="Updating A">A-type records</h3>
 <p>
-Once the zone has been successfully registered SRV records can be added and updated by
-POSTing some request parameters as follows. Please remember to always pass your
-<code>X-Cion-Auth-Key</code> to authorize your requests.
+To create an A-type record within your zone, send a POST requests as follows:
+<pre>
+curl \
+  -X POST \
+  -H "Accept: application/json; version=1.0.0" \
+  -H "Content-Type: application/json" \
+  -H "X-Cion-Auth-Key: ..." \
+  -H "X-Cion-Update-Type: A" \
+  -d '{"hostname":"www","address":"127.0.0.1"}' \
+  https://xcion.cloud/zone/example
+</pre>
+<p>
+If a record with that hostname already exists, it is overwritten with the new address. Multiple
+A-type records with the same hostname are not supported.
+</p>
+<h3 id="Updating MX">MX-type records</h3>
+<p>
+To create an A-type record within your zone, send a POST request as follows:
 </p>
 <pre>
 curl \
   -X POST \
   -H "Accept: application/json; version=1.0.0" \
   -H "Content-Type: application/json" \
-  -H "X-Cion-Auth-Token: 0123456789abcdef" \
-  -d '{"srv":"matrix","proto":"tcp","prio":10,"weight":0,"port":8448,"dest":"127.0.0.1"}' \
+  -H "X-Cion-Auth-Key: ..." \
+  -H "X-Cion-Update-Type: MX" \
+  -d '{"pref":"10","name:"mx1.example.com"}' \
   https://xcion.cloud/zone/example
 </pre>
 <p>
-
+Passing a <code>hostname</code> parameter for MX-type records is not supported. They are always
+created directly on you <code>*.xcion.cloud</code> zone. If an MX-type record with the same
+preference <i>(pref)</i> already exists, it is overwritten with the new name. Multiple MX-type
+records are only supported if they have differing preferences.
 </p>
+<h3 id="Updating SRV">SRV-type records</h3>
 <p>
-The request parameters are:
-</p>
-<ul>
-<li><strong>srv</strong> - Name of the service <small>(without the preceding underscore)</small></li>
-<li><strong>proto</strong> - Protocol under which the service is available <small>(again, no underscore)</small></li>
-<li><strong>prio</strong> - Record priority <small>(lower values have higher priority)</small></li>
-<li><strong>weight</strong> - Record weight <small>(higher values have higher priority)</small></li>
-<li><strong>port</strong> - Port under which your serice is available</li>
-<li><strong>dest</strong> - Endpoint of your service <small>(IP or hostname / hostnames must end with period)</small></li>
-</ul>
-<p>
-For more details on the record fields see:
-<a href="https://en.wikipedia.org/wiki/SRV_record" target="_blank">Wikipedia</a>.
-</p>
-<p>
-The above request would create the following DNS record:
+To create an SRV-type record within your zone, send a POST request as follows:
 </p>
 <pre>
-_matrix._tcp.example.xcion.cloud. 180	IN	SRV	10 0 8448 127.0.0.1
+curl \
+  -X POST \
+  -H "Accept: application/json; version=1.0.0" \
+  -H "Content-Type: application/json" \
+  -H "X-Cion-Auth-Key: ..." \
+  -H "X-Cion-Update-Type: SRV" \
+  -d '{"srv":"matrix","proto":"tcp","prio":"10","weight":"0","proto":"8448","dest"}' \
+  https://xcion.cloud/zone/example
 </pre>
+<p>
+If another SRV-type record with the same srv, proto, prio and weight already exists, it is
+overwritten with the new port and dest. Multiple SRV-type records with the same srv and proto
+are only supported with differing priorities and weights.
+</p>
+<h3 id="Updating TXT">TXT-type records</h3>
+<p>
+To create TXT-type records within your zone, send a POST requst as follows:
+</p>
+<pre>
+curl \
+  -X POST \
+  -H "Accept: application/json; version=1.0.0" \
+  -H "Content-Type: application/json" \
+  -H "X-Cion-Auth-Key: ..." \
+  -H "X-Cion-Update-Type: SRV" \
+  -d '{"gpg-id":"","value":"0x000000"}' \
+  https://xcion.cloud/zone/example
+</pre>
+<p>
+TXT-type records do not support a <code>hostname</code> parameter, instead all records are
+always create directly within your <code>*.xcion.cloud</code> namespace. If another TXT-type
+record with the same name already exists, it is overwritten with the new one.
+</p>
 <br />
 <hr />
 <br />
