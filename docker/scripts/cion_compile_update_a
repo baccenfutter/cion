@@ -13,13 +13,13 @@ CION_TTL="${CION_TTL:-180}"
 CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
 
 record_update() {
-    IFS=$'\n' old_records=( $(dig @localhost _${record}.${zone}.${CION_ROOT_DOMAIN} A +short) )
+    IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} A +short) )
     
     echo "server 127.0.0.1"
     echo "zone ${CION_ROOT_DOMAIN}"
 
     for old_record in "${old_records[@]}"; do
-        echo "update delete ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN A ${record}"
+        echo "update delete ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN A ${old_record}"
     done
     echo "update add ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN A ${dest}"
     echo "send"
