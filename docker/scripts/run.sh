@@ -101,6 +101,7 @@ else
         echo "${CION_NS1_HOSTNAME} IN	A	${CION_NS1_ADDRESS}"
         echo "${CION_NS2_HOSTNAME} IN	A	${CION_NS2_ADDRESS}"
     ) > "${zonefile}"
+    chown named. "${zonefile}"
 fi
 
 echo "Checking for root-domain configfile..."
@@ -114,18 +115,12 @@ else
         echo "  type master;"
         echo "  file \"${zonefile}\";"
         echo "  allow-transfer { ${CION_NS2_ADDRESS}; };"
+        echo "  allow-update { key rndc-key; };"
         echo "  notify yes;"
         echo "};"
     ) > "${configfile}"
+    chown named. "${configfile}"
 fi
-
-#
-# Run cion_compile_config script
-#
-echo "Compiling all zone configfiles..."
-set +e
-CION_RNDC_RELOAD=false /docker/cion_compile_config
-set -e
 
 #
 # Generate RNDC key

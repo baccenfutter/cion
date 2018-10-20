@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 
-	"github.com/c-base/cion/config"
 	my_middleware "github.com/c-base/cion/middleware"
 	"github.com/labstack/echo"
 	"github.com/satori/go.uuid"
@@ -25,8 +25,13 @@ type (
 		AuthKey string `json:"auth_key"`
 	}
 
-	// recordParams is a container for the record update requests/responses.
-	recordParams struct {
+	aRecordParams struct {
+		Hostname string `json:"hostname" form:"hostname" query:"hostname"`
+		Addr     string `json:"address" form:"address" query:"address"`
+	}
+
+	// srvRecordParams is a container for the record update requests/responses.
+	srvRecordParams struct {
 		Srv    string `json:"srv" form:"srv" query:"srv"`
 		Proto  string `json:"proto" form:"proto" query:"proto"`
 		Prio   uint16 `json:"prio" form:"prio" query:"prio"`
@@ -38,9 +43,10 @@ type (
 
 var (
 	// Some regular expressions for field validation.
-	validService     = regexp.MustCompile(`^[a-zA-Z0-9]+?[a-zA-Z0-9\-]{1,61}$`)
-	validProto       = regexp.MustCompile(`^[a-zA-Z0-9]{1,16}$`)
-	validDestination = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]{4,253}$`)
+	validService  = regexp.MustCompile(`^[a-zA-Z0-9]+?[a-zA-Z0-9\-]{1,61}$`)
+	validProto    = regexp.MustCompile(`^[a-zA-Z0-9]{1,16}$`)
+	validHostname = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]{4,253}$`)
+	validIPv4     = regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`)
 )
 
 var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
@@ -50,24 +56,40 @@ var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
 };
 `
 
-// isValid returns true if the recordParams validate.
-func (params recordParams) isValid() bool {
-	if params.Srv == "" {
+// isValid returns true if the srvRecordParams validate.
+func (aParams srvRecordParams) isValid() bool {
+	if aParams.Srv == "" {
 		return false
 	}
-	if !validService.MatchString(params.Srv) {
+	if !validService.MatchString(aParams.Srv) {
 		return false
 	}
-	if params.Proto == "" {
+	if aParams.Proto == "" {
 		return false
 	}
-	if !validProto.MatchString(params.Proto) {
+	if !validProto.MatchString(aParams.Proto) {
 		return false
 	}
-	if params.Dest == "" {
+	if aParams.Dest == "" {
 		return false
 	}
-	if !validDestination.MatchString(params.Dest) {
+	if !validHostname.MatchString(aParams.Dest) {
+		return false
+	}
+	return true
+}
+
+func (aParams aRecordParams) isValid() bool {
+	if aParams.Hostname == "" {
+		return false
+	}
+	if !validHostname.MatchString(aParams.Hostname) {
+		return false
+	}
+	if aParams.Addr == "" {
+		return false
+	}
+	if !validIPv4.MatchString(aParams.Addr) {
 		return false
 	}
 	return true
@@ -102,12 +124,7 @@ func createZone(c echo.Context) error {
 
 	// Save the key to disk, "persisting the account".
 	ioutil.WriteFile(filePath, []byte(key), os.FileMode(0600))
-
-	// Run the cion_compile_config script
-	out, err := exec.Command("cion_compile_config").Output()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, out)
-	}
+	exec.Command(fmt.Sprintf("chown named. %s", filePath))
 
 	// Add auth-key to response and return it.
 	zone.AuthKey = key
@@ -120,27 +137,49 @@ func createZone(c echo.Context) error {
 // - http400 if the request was malformed
 // - http200 if the record was added/updated successfully
 func createOrUpdateRecord(c echo.Context) error {
-	params := new(recordParams)
-	if err := c.Bind(params); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "request parameters malformed!")
-	}
-
-	if !params.isValid() {
-		log.Println(params)
-		return echo.NewHTTPError(http.StatusBadRequest, "request parameters not valid or missing!")
-	}
-
 	cionHeaders := c.Get("cion_headers").(my_middleware.CionHeaders)
+
+	if cionHeaders.UpdateType == "" {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"Please specify X-Cion-Update-Type header!",
+		)
+	}
+
+	if strings.ToLower(cionHeaders.UpdateType) == "a" {
+		return createOrUpdateARecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
+		return createOrUpdateSrvRecord(c, cionHeaders.Zone)
+	}
+	return echo.NewHTTPError(
+		http.StatusBadRequest,
+		fmt.Sprintf("Invalid update type: %s", cionHeaders.UpdateType),
+	)
+}
+
+func createOrUpdateARecord(c echo.Context, zone string) error {
+	aParams := new(aRecordParams)
+	if err := c.Bind(aParams); err != nil {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters malformed!",
+		)
+	}
+
+	if !aParams.isValid() {
+		log.Println(aParams)
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters not valid or missing!",
+		)
+	}
+
 	os.Setenv("CION_DEPLOY_UPDATE", "yes")
 	cmd := exec.Command(
-		"cion_compile_update",
-		fmt.Sprintf("%s.%s", cionHeaders.Zone, config.Config().RootDomain),
-		params.Srv,
-		params.Proto,
-		fmt.Sprintf("%d", params.Prio),
-		fmt.Sprintf("%d", params.Weight),
-		fmt.Sprintf("%d", params.Port),
-		params.Dest,
+		"cion_compile_update_a",
+		zone,
+		aParams.Hostname,
+		aParams.Addr,
 	)
 
 	out, err := cmd.Output()
@@ -151,4 +190,33 @@ func createOrUpdateRecord(c echo.Context) error {
 	return c.String(http.StatusAccepted, string(out))
 }
 
-func deleteRecord(c echo.Context) error { return nil }
+func createOrUpdateSrvRecord(c echo.Context, zone string) error {
+	srvParams := new(srvRecordParams)
+	if err := c.Bind(srvParams); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "request parameters malformed!")
+	}
+
+	if !srvParams.isValid() {
+		log.Println(srvParams)
+		return echo.NewHTTPError(http.StatusBadRequest, "request parameters not valid or missing!")
+	}
+
+	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	cmd := exec.Command(
+		"cion_compile_update_srv",
+		zone,
+		srvParams.Srv,
+		srvParams.Proto,
+		fmt.Sprintf("%d", srvParams.Prio),
+		fmt.Sprintf("%d", srvParams.Weight),
+		fmt.Sprintf("%d", srvParams.Port),
+		srvParams.Dest,
+	)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}

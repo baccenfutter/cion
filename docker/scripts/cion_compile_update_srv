@@ -16,19 +16,20 @@ dest="$7"
 [[ -z $port ]] && echo "Missing parameter: port" && exit 1
 [[ -z $dest ]] && echo "Missing parameter: dest" && exit 1
 
+CION_ROOT_DOMAIN="${CION_ROOT_DOMAIN:-foo.bar}"
 CION_TTL="${CION_TTL:-180}"
 CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
 
 record_update() {
-    IFS=$'\n' old_records=( $(dig @localhost _${srv}._${proto}.${zone} SRV +short | grep "${prio} ${weight}") )
+    IFS=$'\n' old_records=( $(dig @localhost _${srv}._${proto}.${zone}.${CION_ROOT_DOMAIN} SRV +short | grep "${prio} ${weight}") )
     
     echo "server 127.0.0.1"
-    echo "zone ${zone}"
+    echo "zone ${CION_ROOT_DOMAIN}"
 
     for record in "${old_records[@]}"; do
-        echo "update delete _${srv}._${proto}.${zone} ${CION_TTL} IN SRV ${record}"
+        echo "update delete _${srv}._${proto}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN SRV ${record}"
     done
-    echo "update add _${srv}._${proto}.${zone} ${CION_TTL} IN SRV ${prio} ${weight} ${port} ${dest}"
+    echo "update add _${srv}._${proto}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN SRV ${prio} ${weight} ${port} ${dest}"
     echo "send"
     echo "quit"
 }

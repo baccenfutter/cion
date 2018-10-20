@@ -2,7 +2,6 @@ ns:
   build: .
   volumes:
     - ".cion_key_data:/etc/bind/keys:rw"
-    - ".cion_zone_config:/etc/bind/zones:rw"
     - ".cion_zone_files:/var/bind/dyn:rw"
     - "./public:/public:rw"
 

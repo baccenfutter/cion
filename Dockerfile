@@ -10,7 +10,6 @@ FROM alpine:latest
 LABEL maintainer Brian Wiborg <baccenfutter@c-base.org>
 
 VOLUME /etc/bind/keys
-VOLUME /etc/bind/zones
 VOLUME /var/bind/dyn
 
 RUN apk add --no-cache bash bind bind-tools sudo
@@ -24,7 +23,6 @@ WORKDIR /etc/bind
 COPY docker/etc/bind/*.conf /etc/bind/
 COPY docker/etc/bind/named.conf.default-zones /etc/bind/
 COPY docker/etc/bind/db.* /etc/bind/
-RUN touch /etc/bind/named.conf.zones
 COPY docker/scripts /docker
 
 COPY --from=builder /go/bin/cion /usr/bin/cion

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+zone="$1"
+record="$2"
+dest="$3"
+
+[[ -z $zone ]] && echo "Missing parameter: zone" && exit 1
+[[ -z $record ]] && echo "Missing parameter: record" && exit 1
+[[ -z $dest ]] && echo "Missing parameter: dest" && exit 1
+
+CION_ROOT_DOMAIN="${CION_ROOT_DOMAIN:-foo.bar}"
+CION_TTL="${CION_TTL:-180}"
+CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
+
+record_update() {
+    IFS=$'\n' old_records=( $(dig @localhost _${record}.${zone}.${CION_ROOT_DOMAIN} A +short) )
+    
+    echo "server 127.0.0.1"
+    echo "zone ${CION_ROOT_DOMAIN}"
+
+    for old_record in "${old_records[@]}"; do
+        echo "update delete ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN A ${record}"
+    done
+    echo "update add ${record}.${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN A ${dest}"
+    echo "send"
+    echo "quit"
+}
+
+if [[ -n $CION_DEPLOY_UPDATE ]]; then
+    record_update | nsupdate -k named.conf.rndc
+else
+    record_update
+fi

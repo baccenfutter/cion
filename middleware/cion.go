@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -14,9 +15,10 @@ import (
 type (
 	// CionHeaders holds the X-Cion header fields.
 	CionHeaders struct {
-		Zone    string `json:"zone"`
-		AuthKey string `json:"auth_key"`
-		Debug   bool   `json:"debug"`
+		Zone       string `json:"zone"`
+		AuthKey    string `json:"auth_key"`
+		UpdateType string `json:"update_type"`
+		Debug      bool   `json:"debug"`
 	}
 )
 
@@ -43,6 +45,10 @@ func Cion() echo.MiddlewareFunc {
 			// Add authkey and zone to cion headers.
 			headers.AuthKey = authKey
 			headers.Zone = username
+
+			// Add x-cion-update-type header if present.
+			headers.UpdateType = c.Request().Header.Get("x-cion-update-type")
+			log.Println("UPDATE-TYPE:", headers.UpdateType)
 
 			mode := c.Request().Header.Get("x-cion-mode")
 			if strings.ToLower(mode) == "debug" {
