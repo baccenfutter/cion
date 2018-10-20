@@ -1,7 +1,0 @@
-PUT /register HTTP/1.1
-Host: cion.local
-Accept: application/json; version=1.0.0
-Content-Type: application/json
-Content-Length: 18
-
-{"zone":"foobar"}
