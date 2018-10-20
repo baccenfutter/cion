@@ -46,8 +46,7 @@ type (
 	}
 
 	txtRecordParams struct {
-		Name  string `json:"name" form:"name" query:"name"`
-		Value string `json:"value" form:"value" query:"value"`
+		Value string `json:"value" form:"value" query:"value" required:"false"`
 	}
 )
 
@@ -112,9 +111,6 @@ func (mxParams mxRecordParams) isValid() bool {
 }
 
 func (txtParams txtRecordParams) isValid() bool {
-	if txtParams.Name == "" {
-		return false
-	}
 	if txtParams.Value == "" {
 		return false
 	}
@@ -305,7 +301,6 @@ func createOrUpdateTXTRecord(c echo.Context, zone string) error {
 	cmd := exec.Command(
 		"cion_compile_update_txt",
 		zone,
-		txtParams.Name,
 		txtParams.Value,
 	)
 

@@ -101,7 +101,7 @@ else
         echo "${CION_NS1_HOSTNAME} IN	A	${CION_NS1_ADDRESS}"
         echo "${CION_NS2_HOSTNAME} IN	A	${CION_NS2_ADDRESS}"
     ) > "${zonefile}"
-    chown named. "${zonefile}"
+    chown -R named. "${CION_ZONE_PATH}"
 fi
 
 echo "Checking for root-domain configfile..."
@@ -114,7 +114,7 @@ else
         echo "zone \"${CION_ROOT_DOMAIN}\" IN {"
         echo "  type master;"
         echo "  file \"${zonefile}\";"
-        echo "  allow-transfer { ${CION_NS2_ADDRESS}; };"
+        echo "  allow-transfer { 127.0.0.1; ${CION_NS2_ADDRESS}; };"
         echo "  allow-update { key rndc-key; };"
         echo "  notify yes;"
         echo "};"
