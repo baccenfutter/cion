@@ -113,7 +113,7 @@ else
         echo "zone \"${CION_ROOT_DOMAIN}\" IN {"
         echo "  type master;"
         echo "  file \"${zonefile}\";"
-        echo "  allow-transfer { \"${CION_NS2_ADDRESS}\"; };"
+        echo "  allow-transfer { ${CION_NS2_ADDRESS}; };"
         echo "  notify yes;"
         echo "};"
     ) > "${configfile}"
