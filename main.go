@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/c-base/cion/cmd"
+	"github.com/baccenfutter/cion/cmd"
 )
 
 func main() {
