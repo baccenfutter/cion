@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -48,10 +47,16 @@ type (
 	txtRecordParams struct {
 		Value string `json:"value" form:"value" query:"value" required:"false"`
 	}
+
+	cnameRecordParams struct {
+		Name string `json:"name" form:"name" query:"name"`
+		Dest string `json:"dest" form:"dest" query:"dest"`
+	}
 )
 
 var (
 	// Some regular expressions for field validation.
+	validARecord  = regexp.MustCompile(`^[a-zA-Z0-9\-\.]{4,253}$`)
 	validService  = regexp.MustCompile(`^[a-zA-Z0-9]+?[a-zA-Z0-9\-]{1,61}$`)
 	validProto    = regexp.MustCompile(`^[a-zA-Z0-9]{1,16}$`)
 	validHostname = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]{4,253}$`)
@@ -69,7 +74,7 @@ func (aParams aRecordParams) isValid() bool {
 	if aParams.Hostname == "" {
 		return false
 	}
-	if !validHostname.MatchString(aParams.Hostname) {
+	if !validARecord.MatchString(aParams.Hostname) {
 		return false
 	}
 	if aParams.Addr == "" {
@@ -112,6 +117,22 @@ func (mxParams mxRecordParams) isValid() bool {
 
 func (txtParams txtRecordParams) isValid() bool {
 	if txtParams.Value == "" {
+		return false
+	}
+	return true
+}
+
+func (cnameParams cnameRecordParams) isValid() bool {
+	if cnameParams.Name == "" {
+		return false
+	}
+	if !validHostname.MatchString(cnameParams.Name) {
+		return false
+	}
+	if cnameParams.Dest == "" {
+		return false
+	}
+	if !validHostname.MatchString(cnameParams.Dest) {
 		return false
 	}
 	return true
@@ -176,6 +197,8 @@ func createOrUpdateRecord(c echo.Context) error {
 		return createOrUpdateMXRecord(c, cionHeaders.Zone)
 	} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
 		return createOrUpdateTXTRecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "cname" {
+		return createOrUpdateCNAMERecord(c, cionHeaders.Zone)
 	}
 	return echo.NewHTTPError(
 		http.StatusBadRequest,
@@ -193,7 +216,6 @@ func createOrUpdateARecord(c echo.Context, zone string) error {
 	}
 
 	if !aParams.isValid() {
-		log.Println(aParams)
 		return echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
@@ -226,7 +248,6 @@ func createOrUpdateMXRecord(c echo.Context, zone string) error {
 	}
 
 	if !mxParams.isValid() {
-		log.Println(mxParams)
 		return echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
@@ -256,7 +277,6 @@ func createOrUpdateSrvRecord(c echo.Context, zone string) error {
 	}
 
 	if !srvParams.isValid() {
-		log.Println(srvParams)
 		return echo.NewHTTPError(http.StatusBadRequest, "request parameters not valid or missing!")
 	}
 
@@ -290,7 +310,6 @@ func createOrUpdateTXTRecord(c echo.Context, zone string) error {
 	}
 
 	if !txtParams.isValid() {
-		log.Println(txtParams)
 		return echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
@@ -302,6 +321,38 @@ func createOrUpdateTXTRecord(c echo.Context, zone string) error {
 		"cion_compile_update_txt",
 		zone,
 		txtParams.Value,
+	)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func createOrUpdateCNAMERecord(c echo.Context, zone string) error {
+	cnameParams := new(cnameRecordParams)
+	if err := c.Bind(cnameParams); err != nil {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters malformed!",
+		)
+	}
+
+	if !cnameParams.isValid() {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters not valid or missing!",
+		)
+	}
+
+	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	cmd := exec.Command(
+		"cion_compile_update_cname",
+		zone,
+		cnameParams.Name,
+		cnameParams.Dest,
 	)
 
 	out, err := cmd.Output()
