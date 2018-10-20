@@ -42,7 +42,7 @@ type (
 		Prio   uint16 `json:"prio" form:"prio" query:"prio"`
 		Weight uint16 `json:"weight" form:"weight" query:"weight"`
 		Port   uint16 `json:"port" form:"port" query:"port"`
-		Dest   string `json:"dest" form:"dest" query:"dest"`
+		Name   string `json:"name" form:"name" query:"name"`
 	}
 
 	txtRecordParams struct {
@@ -91,23 +91,23 @@ func (aParams aRecordParams) isValid() bool {
 	return true
 }
 
-func (aParams srvRecordParams) isValid() bool {
-	if aParams.Srv == "" {
+func (srvParams srvRecordParams) isValid() bool {
+	if srvParams.Srv == "" {
 		return false
 	}
-	if !validService.MatchString(aParams.Srv) {
+	if !validService.MatchString(srvParams.Srv) {
 		return false
 	}
-	if aParams.Proto == "" {
+	if srvParams.Proto == "" {
 		return false
 	}
-	if !validProto.MatchString(aParams.Proto) {
+	if !validProto.MatchString(srvParams.Proto) {
 		return false
 	}
-	if aParams.Dest == "" {
+	if srvParams.Name == "" {
 		return false
 	}
-	if !validHostname.MatchString(aParams.Dest) {
+	if !validHostname.MatchString(srvParams.Name) {
 		return false
 	}
 	return true
@@ -235,9 +235,9 @@ func createOrUpdateARecord(c echo.Context, zone string) error {
 		aParams.Addr,
 	)
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+		return echo.NewHTTPError(http.StatusBadRequest, out)
 	}
 
 	return c.String(http.StatusAccepted, string(out))
@@ -267,9 +267,9 @@ func createOrUpdateMXRecord(c echo.Context, zone string) error {
 		mxParams.Name,
 	)
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+		return echo.NewHTTPError(http.StatusBadRequest, out)
 	}
 
 	return c.String(http.StatusAccepted, string(out))
@@ -294,12 +294,12 @@ func createOrUpdateSrvRecord(c echo.Context, zone string) error {
 		fmt.Sprintf("%d", srvParams.Prio),
 		fmt.Sprintf("%d", srvParams.Weight),
 		fmt.Sprintf("%d", srvParams.Port),
-		srvParams.Dest,
+		srvParams.Name,
 	)
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+		return echo.NewHTTPError(http.StatusBadRequest, out)
 	}
 
 	return c.String(http.StatusAccepted, string(out))
@@ -328,9 +328,9 @@ func createOrUpdateTXTRecord(c echo.Context, zone string) error {
 		txtParams.Value,
 	)
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+		return echo.NewHTTPError(http.StatusBadRequest, out)
 	}
 
 	return c.String(http.StatusAccepted, string(out))
@@ -360,9 +360,9 @@ func createOrUpdateCNAMERecord(c echo.Context, zone string) error {
 		cnameParams.Dest,
 	)
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+		return echo.NewHTTPError(http.StatusBadRequest, out)
 	}
 
 	return c.String(http.StatusAccepted, string(out))
