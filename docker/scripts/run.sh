@@ -19,8 +19,11 @@ NAMED_GID_ACTUAL=$(id -g ${GROUP})
 CION_CONF_ROOT="${CION_CONF_ROOT:-/etc/bind}"
 CION_ZONE_PATH="${CION_ZONE_PATH:-/var/bind/dyn}"
 CION_ROOT_DOMAIN="${CION_ROOT_DOMAIN:-foo.bar}"
-CION_NS_HOSTNAME="${CION_NS_HOSTNAME:-ns}"
-CION_NS_ADDRESS="${CION_NS_ADDRESS:-127.0.0.1}"
+CION_WEB_ADDRESS="${CION_WEB_ADDRESS:-127.0.0.1}"
+CION_NS1_HOSTNAME="${CION_NS1_HOSTNAME:-ns1}"
+CION_NS2_HOSTNAME="${CION_NS2_HOSTNAME:-ns2}"
+CION_NS1_ADDRESS="${CION_NS1_ADDRESS:-127.0.0.1}"
+CION_NS2_ADDRESS="${CION_NS2_ADDRESS:-127.0.0.1}"
 CION_TTL="${CION_TTL:-180}"
 
 #
@@ -86,14 +89,17 @@ else
     timestamp="$(date +%Y%m%d)"
     (
         echo "\$TTL ${CION_TTL}"
-        echo "@       IN      SOA     ns.${CION_ROOT_DOMAIN}. hostmaster.${CION_ROOT_DOMAIN}.  ("
+        echo "@       IN      SOA     ${CION_NS1_HOSTNAME}.${CION_ROOT_DOMAIN}. hostmaster.${CION_ROOT_DOMAIN}.  ("
         echo "        ${timestamp}01 ; Serial"
         echo "        28800      ; Refresh"
         echo "        14400      ; Retry"
         echo "        604800     ; Expire - 1 week"
         echo "        86400 )    ; Minimum"
-        echo "@	IN      NS      ${CION_NS_HOSTNAME}"
-        echo "${CION_NS_HOSTNAME} IN	A	${CION_NS_ADDRESS}"
+        echo "@ IN      NS      ${CION_NS1_HOSTNAME}"
+        echo "@ IN      NS      ${CION_NS2_HOSTNAME}"
+        echo "@ IN      A       ${CION_WEB_ADDRESS}"
+        echo "${CION_NS1_HOSTNAME} IN	A	${CION_NS1_ADDRESS}"
+        echo "${CION_NS2_HOSTNAME} IN	A	${CION_NS2_ADDRESS}"
     ) > "${zonefile}"
 fi
 
@@ -107,6 +113,8 @@ else
         echo "zone \"${CION_ROOT_DOMAIN}\" IN {"
         echo "  type master;"
         echo "  file \"${zonefile}\";"
+        echo "  allow-transfer { \"${CION_NS2_ADDRESS}\" };"
+        echo "  notify yes;"
         echo "};"
     ) > "${configfile}"
 fi
