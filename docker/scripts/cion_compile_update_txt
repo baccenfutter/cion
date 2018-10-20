@@ -1,0 +1,33 @@
+#!/bin/bash
+
+zone="$1"
+attr_name="$2"
+attr_value="$3"
+
+[[ -z $zone ]] && echo "Missing parameter: zone" && exit 1
+[[ -z $attr_name ]] && echo "Missing parameter: attr_name" && exit 1
+[[ -z $attr_value ]] && echo "Missing parameter: attr_value" && exit 1
+
+CION_ROOT_DOMAIN="${CION_ROOT_DOMAIN:-foo.bar}"
+CION_TTL="${CION_TTL:-180}"
+CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
+
+record_update() {
+    IFS=$'\n' old_records=( $(dig @localhost ${zone}.${CION_ROOT_DOMAIN} TXT +short | grep "${attr_name}") )
+    
+    echo "server 127.0.0.1"
+    echo "zone ${CION_ROOT_DOMAIN}"
+
+    for old_record in "${old_records[@]}"; do
+        echo "update delete ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN TXT ${old_record}"
+    done
+    echo "update add ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN TXT \"${attr_name}=${attr_value}\""
+    echo "send"
+    echo "quit"
+}
+
+if [[ -n $CION_DEPLOY_UPDATE ]]; then
+    record_update | nsupdate -k named.conf.rndc
+else
+    record_update
+fi

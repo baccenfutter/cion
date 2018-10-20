@@ -31,9 +31,8 @@ type (
 	}
 
 	mxRecordParams struct {
-		Owner string `json:"owner" form:"owner" query:"owner"`
-		Pref  string `json:"pref" form:"pref" query:"pref"`
-		Name  string `json:"name" form:"name" query:"name"`
+		Pref string `json:"pref" form:"pref" query:"pref"`
+		Name string `json:"name" form:"name" query:"name"`
 	}
 
 	// srvRecordParams is a container for the record update requests/responses.
@@ -44,6 +43,11 @@ type (
 		Weight uint16 `json:"weight" form:"weight" query:"weight"`
 		Port   uint16 `json:"port" form:"port" query:"port"`
 		Dest   string `json:"dest" form:"dest" query:"dest"`
+	}
+
+	txtRecordParams struct {
+		Name  string `json:"name" form:"name" query:"name"`
+		Value string `json:"value" form:"value" query:"value"`
 	}
 )
 
@@ -62,7 +66,22 @@ var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
 };
 `
 
-// isValid returns true if the srvRecordParams validate.
+func (aParams aRecordParams) isValid() bool {
+	if aParams.Hostname == "" {
+		return false
+	}
+	if !validHostname.MatchString(aParams.Hostname) {
+		return false
+	}
+	if aParams.Addr == "" {
+		return false
+	}
+	if !validIPv4.MatchString(aParams.Addr) {
+		return false
+	}
+	return true
+}
+
 func (aParams srvRecordParams) isValid() bool {
 	if aParams.Srv == "" {
 		return false
@@ -85,30 +104,18 @@ func (aParams srvRecordParams) isValid() bool {
 	return true
 }
 
-func (aParams aRecordParams) isValid() bool {
-	if aParams.Hostname == "" {
-		return false
-	}
-	if !validHostname.MatchString(aParams.Hostname) {
-		return false
-	}
-	if aParams.Addr == "" {
-		return false
-	}
-	if !validIPv4.MatchString(aParams.Addr) {
+func (mxParams mxRecordParams) isValid() bool {
+	if mxParams.Name == "" {
 		return false
 	}
 	return true
 }
 
-func (mxParams mxRecordParams) isValid() bool {
-	if mxParams.Owner == "" {
+func (txtParams txtRecordParams) isValid() bool {
+	if txtParams.Name == "" {
 		return false
 	}
-	if !validHostname.MatchString(mxParams.Owner) {
-		return false
-	}
-	if mxParams.Name == "" {
+	if txtParams.Value == "" {
 		return false
 	}
 	return true
@@ -169,6 +176,10 @@ func createOrUpdateRecord(c echo.Context) error {
 		return createOrUpdateARecord(c, cionHeaders.Zone)
 	} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
 		return createOrUpdateSrvRecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "mx" {
+		return createOrUpdateMXRecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
+		return createOrUpdateTXTRecord(c, cionHeaders.Zone)
 	}
 	return echo.NewHTTPError(
 		http.StatusBadRequest,
@@ -230,7 +241,6 @@ func createOrUpdateMXRecord(c echo.Context, zone string) error {
 	cmd := exec.Command(
 		"cion_compile_update_mx",
 		zone,
-		mxParams.Owner,
 		mxParams.Pref,
 		mxParams.Name,
 	)
@@ -264,6 +274,39 @@ func createOrUpdateSrvRecord(c echo.Context, zone string) error {
 		fmt.Sprintf("%d", srvParams.Weight),
 		fmt.Sprintf("%d", srvParams.Port),
 		srvParams.Dest,
+	)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func createOrUpdateTXTRecord(c echo.Context, zone string) error {
+	txtParams := new(txtRecordParams)
+	if err := c.Bind(txtParams); err != nil {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters malformed!",
+		)
+	}
+
+	if !txtParams.isValid() {
+		log.Println(txtParams)
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters not valid or missing!",
+		)
+	}
+
+	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	cmd := exec.Command(
+		"cion_compile_update_txt",
+		zone,
+		txtParams.Name,
+		txtParams.Value,
 	)
 
 	out, err := cmd.Output()
