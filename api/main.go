@@ -58,6 +58,7 @@ func ListenAndServe() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", landingpage)
+	e.File("/favicon.ico", "/public/favicon.ico")
 	e.PUT("/register", createZone)
 
 	g := e.Group("/zone",
