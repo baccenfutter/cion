@@ -30,6 +30,12 @@ type (
 		Addr     string `json:"address" form:"address" query:"address"`
 	}
 
+	mxRecordParams struct {
+		Owner string `json:"owner" form:"owner" query:"owner"`
+		Pref  string `json:"pref" form:"pref" query:"pref"`
+		Name  string `json:"name" form:"name" query:"name"`
+	}
+
 	// srvRecordParams is a container for the record update requests/responses.
 	srvRecordParams struct {
 		Srv    string `json:"srv" form:"srv" query:"srv"`
@@ -90,6 +96,19 @@ func (aParams aRecordParams) isValid() bool {
 		return false
 	}
 	if !validIPv4.MatchString(aParams.Addr) {
+		return false
+	}
+	return true
+}
+
+func (mxParams mxRecordParams) isValid() bool {
+	if mxParams.Owner == "" {
+		return false
+	}
+	if !validHostname.MatchString(mxParams.Owner) {
+		return false
+	}
+	if mxParams.Name == "" {
 		return false
 	}
 	return true
@@ -180,6 +199,40 @@ func createOrUpdateARecord(c echo.Context, zone string) error {
 		zone,
 		aParams.Hostname,
 		aParams.Addr,
+	)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, cmd)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func createOrUpdateMXRecord(c echo.Context, zone string) error {
+	mxParams := new(mxRecordParams)
+	if err := c.Bind(mxParams); err != nil {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters malformed!",
+		)
+	}
+
+	if !mxParams.isValid() {
+		log.Println(mxParams)
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"request parameters not valid or missing!",
+		)
+	}
+
+	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	cmd := exec.Command(
+		"cion_compile_update_mx",
+		zone,
+		mxParams.Owner,
+		mxParams.Pref,
+		mxParams.Name,
 	)
 
 	out, err := cmd.Output()
