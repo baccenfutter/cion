@@ -58,7 +58,6 @@ func ListenAndServe() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", landingpage)
-	e.GET("/debug", getDebug)
 	e.PUT("/register", createZone)
 
 	g := e.Group("/zone",
