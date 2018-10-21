@@ -17,7 +17,7 @@ record_update() {
     if [[ -z ${CION_DELETE_ONLY} ]]; then
         IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} A +short) )
     else
-        IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} A +short | grep "${dest}") )
+        IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} A +short | grep "^${dest}") )
     fi
     
     echo "server 127.0.0.1"

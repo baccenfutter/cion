@@ -26,8 +26,8 @@ type (
 	}
 
 	aRecordParams struct {
-		Hostname string `json:"hostname" form:"hostname" query:"hostname"`
-		Addr     string `json:"address" form:"address" query:"address"`
+		Name string `json:"name" form:"name" query:"name"`
+		Addr string `json:"address" form:"address" query:"address"`
 	}
 
 	mxRecordParams struct {
@@ -72,12 +72,12 @@ var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
 `
 
 func (aParams aRecordParams) isValid() bool {
-	if aParams.Hostname == "" {
-		log.Println("its the hostname", aParams.Hostname)
+	if aParams.Name == "" {
+		log.Println("its the hostname", aParams.Name)
 		return false
 	}
-	if !validARecord.MatchString(aParams.Hostname) {
-		log.Println("its the hostname", aParams.Hostname)
+	if !validARecord.MatchString(aParams.Name) {
+		log.Println("its the hostname", aParams.Name)
 		return false
 	}
 	if aParams.Addr == "" {
@@ -179,35 +179,51 @@ func createZone(c echo.Context) error {
 	return c.JSON(http.StatusAccepted, zone)
 }
 
-// createOrUpdateRecord is the echo handler for adding/update records.
+// createUpdateOrDeleteRecord is the echo handler for adding/update records.
 // It returns
 // - http401 if the authentication failed
 // - http400 if the request was malformed
 // - http200 if the record was added/updated successfully
-func createOrUpdateRecord(c echo.Context) error {
+func createUpdateOrDeleteRecord(c echo.Context) error {
 	cionHeaders := c.Get("cion_headers").(my_middleware.CionHeaders)
 
-	if cionHeaders.UpdateType == "" {
+	if cionHeaders.UpdateType != "" {
+		if strings.ToLower(cionHeaders.UpdateType) == "a" {
+			return createOrUpdateARecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
+			return createOrUpdateSRVRecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.UpdateType) == "mx" {
+			return createOrUpdateMXRecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
+			return createOrUpdateTXTRecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.UpdateType) == "cname" {
+			return createOrUpdateCNAMERecord(c, cionHeaders.Zone)
+		}
 		return echo.NewHTTPError(
 			http.StatusBadRequest,
-			"Please specify X-Cion-Update-Type header!",
+			fmt.Sprintf("invalid update type: %s", cionHeaders.UpdateType),
 		)
-	}
+	} else if cionHeaders.DeleteType != "" {
+		if strings.ToLower(cionHeaders.DeleteType) == "a" {
+			return deleteARecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.DeleteType) == "mx" {
+			return deleteMXRecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.DeleteType) == "srv" {
+			return deleteSRVRecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.DeleteType) == "txt" {
+			return deleteTXTRecord(c, cionHeaders.Zone)
+		} else if strings.ToLower(cionHeaders.DeleteType) == "cname" {
+			return deleteCNAMERecord(c, cionHeaders.Zone)
+		}
 
-	if strings.ToLower(cionHeaders.UpdateType) == "a" {
-		return createOrUpdateARecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
-		return createOrUpdateSRVRecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "mx" {
-		return createOrUpdateMXRecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
-		return createOrUpdateTXTRecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "cname" {
-		return createOrUpdateCNAMERecord(c, cionHeaders.Zone)
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			fmt.Sprintf("invalid delete type: %s", cionHeaders.UpdateType),
+		)
 	}
 	return echo.NewHTTPError(
 		http.StatusBadRequest,
-		fmt.Sprintf("invalid update type: %s", cionHeaders.UpdateType),
+		"please specify X-Cion-Update-Type or X-Cion-Delete-Type header!",
 	)
 }
 
@@ -234,7 +250,7 @@ func getAParams(c echo.Context, zone string, delete bool) (*exec.Cmd, error) {
 	cmd := exec.Command(
 		"cion_compile_update_a",
 		zone,
-		aParams.Hostname,
+		aParams.Name,
 		aParams.Addr,
 	)
 	return cmd, nil
@@ -481,32 +497,4 @@ func deleteCNAMERecord(c echo.Context, zone string) error {
 	}
 
 	return c.String(http.StatusAccepted, string(out))
-}
-
-func deleteRecord(c echo.Context) error {
-	cionHeaders := c.Get("cion_headers").(my_middleware.CionHeaders)
-
-	if cionHeaders.UpdateType == "" {
-		return echo.NewHTTPError(
-			http.StatusBadRequest,
-			"Please specify X-Cion-Update-Type header!",
-		)
-	}
-
-	if strings.ToLower(cionHeaders.UpdateType) == "a" {
-		return deleteARecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "mx" {
-		return deleteMXRecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
-		return deleteSRVRecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
-		return deleteTXTRecord(c, cionHeaders.Zone)
-	} else if strings.ToLower(cionHeaders.UpdateType) == "cname" {
-		return deleteCNAMERecord(c, cionHeaders.Zone)
-	}
-
-	return echo.NewHTTPError(
-		http.StatusBadRequest,
-		fmt.Sprintf("invalid update type: %s", cionHeaders.UpdateType),
-	)
 }

@@ -18,6 +18,7 @@ type (
 		Zone       string `json:"zone"`
 		AuthKey    string `json:"auth_key"`
 		UpdateType string `json:"update_type"`
+		DeleteType string `json:"delete_type"`
 		Debug      bool   `json:"debug"`
 	}
 )
@@ -49,6 +50,10 @@ func Cion() echo.MiddlewareFunc {
 			// Add x-cion-update-type header if present.
 			headers.UpdateType = c.Request().Header.Get("x-cion-update-type")
 			log.Println("UPDATE-TYPE:", headers.UpdateType)
+
+			// Add x-cion-delete-type header if present.
+			headers.DeleteType = c.Request().Header.Get("x-cion-delete-type")
+			log.Println("DELETE-TYPE:", headers.UpdateType)
 
 			mode := c.Request().Header.Get("x-cion-mode")
 			if strings.ToLower(mode) == "debug" {

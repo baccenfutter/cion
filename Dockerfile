@@ -2,7 +2,7 @@ FROM golang:alpine as builder
 RUN apk add git
 ADD . /go/src/github.com/baccenfutter/cion
 WORKDIR /go/src/github.com/baccenfutter/cion
-RUN go get -v github.com/kardianos/govendor
+RUN go get github.com/kardianos/govendor
 RUN govendor sync
 RUN govendor install +local
 

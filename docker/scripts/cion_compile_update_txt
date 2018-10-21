@@ -12,16 +12,16 @@ CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
 CION_DELETE_ONLY="${CION_DELETE_ONLY}"
 
 record_update() {
-    IFS=$'\n' old_records=( $(dig @localhost ${zone}.${CION_ROOT_DOMAIN} TXT +short | grep "^${value}$") )
+    IFS=$'\n' old_records=( $(dig @localhost ${zone}.${CION_ROOT_DOMAIN} TXT +short | grep "\"${value}\"$") )
     
     echo "server 127.0.0.1"
     echo "zone ${CION_ROOT_DOMAIN}"
 
     for old_record in "${old_records[@]}"; do
-        echo "update delete ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN TXT ${old_record}"
+        echo "update delete ${zone}.${CION_ROOT_DOMAIN} TXT ${old_record}"
     done
     if [[ -z ${CION_DELETE_ONLY} ]]; then
-        echo "update add ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN TXT \"${value}\""
+        echo "update add ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN TXT ${value}"
     fi
     echo "send"
     echo "quit"
