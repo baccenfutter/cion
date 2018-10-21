@@ -28,6 +28,7 @@
 <li><a href="#Updating SRV">SRV-type</a></li>
 <li><a href="#Updating TXT">TXT-type</a></li>
 <li><a href="#Updating CNAME">CNAME-type</a></li>
+<li><a href="#Deleting">Deleting records</a></li>
 </ul><br / >
 <span class="navigation_header">Community</span>
 <ul>
@@ -183,6 +184,10 @@ curl \
 Note, that the <code>destination</code> parameter will always be prepended with
 <code>&lt;your-zone&gt;.xcion.cloud.</code> in order to prevent abuse (i.e. for fishing).
 CNAME-type records pointing to destinations outside of your zone is not supported.
+</p>
+<h3 id="Deleting">Deleting records</h3>
+<p>
+All records can be delete by sending a <code>DELETE</code> instead of a <code>POST</code> request.
 </p>
 <br />
 <hr />

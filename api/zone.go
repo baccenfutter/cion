@@ -197,7 +197,7 @@ func createOrUpdateRecord(c echo.Context) error {
 	if strings.ToLower(cionHeaders.UpdateType) == "a" {
 		return createOrUpdateARecord(c, cionHeaders.Zone)
 	} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
-		return createOrUpdateSrvRecord(c, cionHeaders.Zone)
+		return createOrUpdateSRVRecord(c, cionHeaders.Zone)
 	} else if strings.ToLower(cionHeaders.UpdateType) == "mx" {
 		return createOrUpdateMXRecord(c, cionHeaders.Zone)
 	} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
@@ -207,34 +207,44 @@ func createOrUpdateRecord(c echo.Context) error {
 	}
 	return echo.NewHTTPError(
 		http.StatusBadRequest,
-		fmt.Sprintf("Invalid update type: %s", cionHeaders.UpdateType),
+		fmt.Sprintf("invalid update type: %s", cionHeaders.UpdateType),
 	)
 }
 
-func createOrUpdateARecord(c echo.Context, zone string) error {
+func getAParams(c echo.Context, zone string, delete bool) (*exec.Cmd, error) {
 	aParams := new(aRecordParams)
 	if err := c.Bind(aParams); err != nil {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters malformed!",
 		)
 	}
 
 	if !aParams.isValid() {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
 		)
 	}
 
 	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	if delete {
+		os.Setenv("CION_DELETE_ONLY", "yes")
+	}
 	cmd := exec.Command(
 		"cion_compile_update_a",
 		zone,
 		aParams.Hostname,
 		aParams.Addr,
 	)
+	return cmd, nil
+}
 
+func createOrUpdateARecord(c echo.Context, zone string) error {
+	cmd, err := getAParams(c, zone, false)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "err")
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, out)
@@ -243,23 +253,39 @@ func createOrUpdateARecord(c echo.Context, zone string) error {
 	return c.String(http.StatusAccepted, string(out))
 }
 
-func createOrUpdateMXRecord(c echo.Context, zone string) error {
+func deleteARecord(c echo.Context, zone string) error {
+	cmd, err := getAParams(c, zone, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, out)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func getMXParams(c echo.Context, zone string, delete bool) (*exec.Cmd, error) {
 	mxParams := new(mxRecordParams)
 	if err := c.Bind(mxParams); err != nil {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters malformed!",
 		)
 	}
 
 	if !mxParams.isValid() {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
 		)
 	}
 
 	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	if delete {
+		os.Setenv("CION_DELETE_ONLY", "yes")
+	}
 	cmd := exec.Command(
 		"cion_compile_update_mx",
 		zone,
@@ -267,6 +293,14 @@ func createOrUpdateMXRecord(c echo.Context, zone string) error {
 		mxParams.Name,
 	)
 
+	return cmd, nil
+}
+
+func createOrUpdateMXRecord(c echo.Context, zone string) error {
+	cmd, err := getMXParams(c, zone, false)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, out)
@@ -275,17 +309,33 @@ func createOrUpdateMXRecord(c echo.Context, zone string) error {
 	return c.String(http.StatusAccepted, string(out))
 }
 
-func createOrUpdateSrvRecord(c echo.Context, zone string) error {
+func deleteMXRecord(c echo.Context, zone string) error {
+	cmd, err := getMXParams(c, zone, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, out)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func getSRVParams(c echo.Context, zone string, delete bool) (*exec.Cmd, error) {
 	srvParams := new(srvRecordParams)
 	if err := c.Bind(srvParams); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "request parameters malformed!")
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "request parameters malformed!")
 	}
 
 	if !srvParams.isValid() {
-		return echo.NewHTTPError(http.StatusBadRequest, "request parameters not valid or missing!")
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "request parameters not valid or missing!")
 	}
 
 	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	if delete {
+		os.Setenv("CION_DELETE_ONLY", "yes")
+	}
 	cmd := exec.Command(
 		"cion_compile_update_srv",
 		zone,
@@ -296,7 +346,14 @@ func createOrUpdateSrvRecord(c echo.Context, zone string) error {
 		fmt.Sprintf("%d", srvParams.Port),
 		srvParams.Name,
 	)
+	return cmd, nil
+}
 
+func createOrUpdateSRVRecord(c echo.Context, zone string) error {
+	cmd, err := getSRVParams(c, zone, false)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, out)
@@ -305,29 +362,53 @@ func createOrUpdateSrvRecord(c echo.Context, zone string) error {
 	return c.String(http.StatusAccepted, string(out))
 }
 
-func createOrUpdateTXTRecord(c echo.Context, zone string) error {
+func deleteSRVRecord(c echo.Context, zone string) error {
+	cmd, err := getSRVParams(c, zone, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, out)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func getTXTParams(c echo.Context, zone string, delete bool) (*exec.Cmd, error) {
 	txtParams := new(txtRecordParams)
 	if err := c.Bind(txtParams); err != nil {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters malformed!",
 		)
 	}
 
 	if !txtParams.isValid() {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
 		)
 	}
 
 	os.Setenv("CION_DEPLOY_UPDATE", "yes")
+	if delete {
+		os.Setenv("CION_DELETE_ONLY", "yes")
+	}
 	cmd := exec.Command(
 		"cion_compile_update_txt",
 		zone,
 		txtParams.Value,
 	)
 
+	return cmd, nil
+}
+
+func createOrUpdateTXTRecord(c echo.Context, zone string) error {
+	cmd, err := getTXTParams(c, zone, false)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, out)
@@ -336,17 +417,30 @@ func createOrUpdateTXTRecord(c echo.Context, zone string) error {
 	return c.String(http.StatusAccepted, string(out))
 }
 
-func createOrUpdateCNAMERecord(c echo.Context, zone string) error {
+func deleteTXTRecord(c echo.Context, zone string) error {
+	cmd, err := getTXTParams(c, zone, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, out)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func getCNAMEParams(c echo.Context, zone string, delete bool) (*exec.Cmd, error) {
 	cnameParams := new(cnameRecordParams)
 	if err := c.Bind(cnameParams); err != nil {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters malformed!",
 		)
 	}
 
 	if !cnameParams.isValid() {
-		return echo.NewHTTPError(
+		return nil, echo.NewHTTPError(
 			http.StatusBadRequest,
 			"request parameters not valid or missing!",
 		)
@@ -360,10 +454,59 @@ func createOrUpdateCNAMERecord(c echo.Context, zone string) error {
 		cnameParams.Dest,
 	)
 
+	return cmd, nil
+}
+
+func createOrUpdateCNAMERecord(c echo.Context, zone string) error {
+	cmd, err := getCNAMEParams(c, zone, false)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, out)
 	}
 
 	return c.String(http.StatusAccepted, string(out))
+}
+
+func deleteCNAMERecord(c echo.Context, zone string) error {
+	cmd, err := getCNAMEParams(c, zone, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, out)
+	}
+
+	return c.String(http.StatusAccepted, string(out))
+}
+
+func deleteRecord(c echo.Context) error {
+	cionHeaders := c.Get("cion_headers").(my_middleware.CionHeaders)
+
+	if cionHeaders.UpdateType == "" {
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			"Please specify X-Cion-Update-Type header!",
+		)
+	}
+
+	if strings.ToLower(cionHeaders.UpdateType) == "a" {
+		return deleteARecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "mx" {
+		return deleteMXRecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "srv" {
+		return deleteSRVRecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "txt" {
+		return deleteTXTRecord(c, cionHeaders.Zone)
+	} else if strings.ToLower(cionHeaders.UpdateType) == "cname" {
+		return deleteCNAMERecord(c, cionHeaders.Zone)
+	}
+
+	return echo.NewHTTPError(
+		http.StatusBadRequest,
+		fmt.Sprintf("invalid update type: %s", cionHeaders.UpdateType),
+	)
 }

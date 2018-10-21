@@ -11,9 +11,14 @@ name="$3"
 CION_ROOT_DOMAIN="${CION_ROOT_DOMAIN:-foo.bar}"
 CION_TTL="${CION_TTL:-180}"
 CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
+CION_DELETE_ONLY="${CION_DELETE_ONLY}"
 
 record_update() {
-    IFS=$'\n' old_records=( $(dig @localhost ${zone}.${CION_ROOT_DOMAIN} MX +short | grep "${pref} ") )
+    if [[ -z ${CION_DELETE_ONLY} ]]; then
+        IFS=$'\n' old_records=( $(dig @localhost ${zone}.${CION_ROOT_DOMAIN} MX +short | grep "^${pref} ") )
+    else
+        IFS=$'\n' old_records=( $(dig @localhost ${zone}.${CION_ROOT_DOMAIN} MX +short | grep "^${pref} ${name}$") )
+    fi
 
     echo "server 127.0.0.1"
     echo "zone ${CION_ROOT_DOMAIN}"
@@ -21,7 +26,9 @@ record_update() {
     for old_record in "${old_records[@]}"; do
         echo "update delete ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN MX ${old_record}"
     done
-    echo "update add ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN MX ${pref} ${name}"
+    if [[ -z ${CION_DELETE_ONLY} ]]; then
+        echo "update add ${zone}.${CION_ROOT_DOMAIN}. ${CION_TTL} IN MX ${pref} ${name}"
+    fi
     echo "send"
     echo "quit"
 }
