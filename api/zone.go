@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -73,19 +72,15 @@ var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
 
 func (aParams aRecordParams) isValid() bool {
 	if aParams.Name == "" {
-		log.Println("its the hostname", aParams.Name)
 		return false
 	}
 	if !validARecord.MatchString(aParams.Name) {
-		log.Println("its the hostname", aParams.Name)
 		return false
 	}
 	if aParams.Addr == "" {
-		log.Println("its the address")
 		return false
 	}
 	if !validIPv4.MatchString(aParams.Addr) {
-		log.Println("its the address")
 		return false
 	}
 	return true
