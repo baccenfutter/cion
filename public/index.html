@@ -80,12 +80,12 @@ curl \
 If the desired namespace has already been registered by another user, the call will return an
 HTTP-423 (LOCKED). In that case, simply try registering for a different namespace instead. If
 the namespace is still vacant it returns an HTTP-202 (ACCEPTED) together with an authentication
-token that will be needed for managing your zone. Pass it as <code>X-Cion-Auth-Key</code> in
-all of your subsequent requests to authenticate as owner for the zone.
+token that will be needed for managing the zone. Pass it as <code>X-Cion-Auth-Key</code> in
+all of your subsequent requests to authenticate as owner of the zone.
 </p>
 <p>
-Please do keep a secure backup of this token as loosing it will result in loss of control over
-your registered namespace!
+Please do keep a secure backup of this token, as loosing it will result in total loss of control
+over your registered namespace!
 </p>
 <p>
 Namespaces that do not receive any zone updates for 60 days, will
@@ -107,11 +107,12 @@ curl \
 </pre>
 <p>
 If a record with that hostname already exists, it is overwritten with the new address. Multiple
-A-type records with the same hostname are not supported.
+A-type records with the same hostname are not supported, use a <a href="#Updating CNAME">CNAME</a>
+instead.
 </p>
 <h3 id="Updating MX">MX-type records</h3>
 <p>
-To create an A-type record within your zone, send a POST request as follows:
+To create an MX-type record within your zone, send a POST request as follows:
 </p>
 <pre>
 curl \
@@ -125,13 +126,13 @@ curl \
 </pre>
 <p>
 Passing a <code>hostname</code> parameter for MX-type records is not supported. They are always
-created directly on you <code>*.xcion.cloud</code> zone. If an MX-type record with the same
-preference <i>(pref)</i> already exists, it is overwritten with the new name. Multiple MX-type
-records are only supported if they have differing preferences.
+created directly under your <code>&lt;yourzone&gt;.xcion.cloud</code>. If an MX-type record with
+the same preference <i>(pref)</i> already exists, it is overwritten with the new name. Multiple
+MX-type records are only supported if they have differing preferences.
 </p>
 <p>
 Please also note that the request will not be accepted if no A-type record could be found for
-the name specified in the <code>destination</code> parameter.
+the name specified in the <code>name</code> parameter.
 </p>
 <h3 id="Updating SRV">SRV-type records</h3>
 <p>
@@ -168,8 +169,8 @@ curl \
 </pre>
 <p>
 TXT-type records do not support a <code>hostname</code> parameter, instead all records are
-always create directly within your <code>*.xcion.cloud</code> namespace. If another TXT-type
-record with the same name already exists, it is overwritten with the new one.
+always created directly under your <code>&lt;yourzone&gt;.xcion.cloud</code> namespace. If another
+TXT-type record with the same name already exists, it is overwritten with the new one.
 </p>
 <h3 id="Updating CNAME">CNAME-type records</h3>
 <p>
@@ -186,9 +187,9 @@ curl \
   https://xcion.cloud/zone/example
 </pre>
 <p>
-Note, that the <code>destination</code> parameter will always be prepended with
-<code>&lt;your-zone&gt;.xcion.cloud.</code> in order to prevent abuse (i.e. for fishing).
-CNAME-type records pointing to destinations outside of your zone is not supported.
+Note, that the <code>dest</code> parameter will always be prepended with
+<code>&lt;yourzone&gt;.xcion.cloud.</code> in order to prevent abuse (i.e. fishing).
+CNAME-type records pointing to destinations outside of your zone are not supported.
 </p>
 <h3 id="Deleting">Deleting records</h3>
 <p>
