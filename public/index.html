@@ -97,7 +97,7 @@ curl \
   -H "Content-Type: application/json" \
   -H "X-Cion-Auth-Key: ..." \
   -H "X-Cion-Update-Type: A" \
-  -d '{"hostname":"www","address":"127.0.0.1"}' \
+  -d '{"name":"www","address":"127.0.0.1"}' \
   https://xcion.cloud/zone/example
 </pre>
 <p>
@@ -139,7 +139,7 @@ curl \
   -H "Content-Type: application/json" \
   -H "X-Cion-Auth-Key: ..." \
   -H "X-Cion-Update-Type: SRV" \
-  -d '{"srv":"matrix","proto":"tcp","prio":"10","weight":"0","proto":"8448","dest"}' \
+  -d '{"srv":"matrix","proto":"tcp","prio":10,"weight":0,"proto":8448,"name":"matrix"}' \
   https://xcion.cloud/zone/example
 </pre>
 <p>
