@@ -187,7 +187,8 @@ CNAME-type records pointing to destinations outside of your zone is not supporte
 </p>
 <h3 id="Deleting">Deleting records</h3>
 <p>
-All records can be delete by sending a <code>DELETE</code> instead of a <code>POST</code> request.
+Records can be delete by sending the POST request with <code>X-Cion-Delete-Type</code> instead of a
+<code>X-Cion-Update-Type</code> header. The parameters remains the same.
 </p>
 <br />
 <hr />
