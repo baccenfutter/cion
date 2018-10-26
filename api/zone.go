@@ -131,6 +131,9 @@ func (cnameParams cnameRecordParams) isValid() bool {
 	}
 	if cnameParams.Dest == "" {
 		return false
+	} else if cnameParams.Dest[len(cnameParams.Dest)-1] == '.' {
+		// Remove trailing dot if present
+		cnameParams.Dest = cnameParams.Dest[0 : len(cnameParams.Dest)-1]
 	}
 	if !validHostname.MatchString(cnameParams.Dest) {
 		return false

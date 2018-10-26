@@ -14,11 +14,7 @@ CION_DEPLOY_UPDATE="${CION_DEPLOY_UPDATE}"
 CION_DELETE_ONLY="${CION_DELETE_ONLY}"
 
 record_update() {
-    if [[ -z ${CION_DELETE_ONLY} ]]; then
-        IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} CNAME +short) )
-    else
-        IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} CNAME +short | grep "${name}") )
-    fi
+    IFS=$'\n' old_records=( $(dig @localhost ${record}.${zone}.${CION_ROOT_DOMAIN} CNAME +short | grep "${name}") )
     
     echo "server 127.0.0.1"
     echo "zone ${CION_ROOT_DOMAIN}"
