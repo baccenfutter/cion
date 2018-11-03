@@ -9,6 +9,7 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start API backend and serve all requests.",
 	Run: func(cmd *cobra.Command, args []string) {
+		api.LoadKeys()
 		api.ListenAndServe()
 	},
 }

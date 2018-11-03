@@ -17,11 +17,8 @@ var (
 	CionKeyDir = "/etc/bind/keys"
 )
 
-func init() {
-	loadKeys()
-}
-
-func loadKeys() {
+// LoadKeys loads all keys from disk to memory.
+func LoadKeys() {
 	file, err := ioutil.TempFile(CionKeyDir, ".tmp")
 	defer os.Remove(file.Name())
 
