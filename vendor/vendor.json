@@ -118,10 +118,22 @@
 			"revisionTime": "2018-05-01T17:57:54Z"
 		},
 		{
+			"checksumSHA1": "GtamqiJoL7PGHsN454AoffBFMa8=",
+			"path": "golang.org/x/net/context",
+			"revision": "640f4622ab692b87c2f3a94265e6f579fe38263d",
+			"revisionTime": "2018-05-02T16:14:02Z"
+		},
+		{
 			"checksumSHA1": "93Yl/rev/eILUaSVhGDxCM8v2vY=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "78d5f264b493f125018180c204871ecf58a2dce1",
 			"revisionTime": "2018-04-29T08:56:08Z"
+		},
+		{
+			"checksumSHA1": "HoCvrd3hEhsFeBOdEw7cbcfyk50=",
+			"path": "golang.org/x/time/rate",
+			"revision": "fbb02b2291d28baffd63558aa44b4b56f178d650",
+			"revisionTime": "2018-04-12T16:56:04Z"
 		}
 	],
 	"rootPath": "github.com/baccenfutter/cion"

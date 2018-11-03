@@ -5,16 +5,20 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 
 	my_middleware "github.com/baccenfutter/cion/middleware"
 	"github.com/labstack/echo"
 	"github.com/satori/go.uuid"
+	"golang.org/x/time/rate"
 )
 
 type (
@@ -52,6 +56,11 @@ type (
 		Name string `json:"name" form:"name" query:"name"`
 		Dest string `json:"dest" form:"dest" query:"dest"`
 	}
+
+	limiter struct {
+		Lock    sync.Mutex
+		Limiter *rate.Limiter
+	}
 )
 
 var (
@@ -61,6 +70,12 @@ var (
 	validProto    = regexp.MustCompile(`^([a-zA-Z0-9]*){1,16}$`)
 	validHostname = regexp.MustCompile(`^([a-zA-Z0-9_\-\.]*){4,253}$`)
 	validIPv4     = regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`)
+
+	// rate-limit
+	limitMutexRegister sync.Mutex
+	limitRegistrations = map[string]time.Time{}
+	limitMutexUpdates  sync.Mutex
+	limitUpdates       = map[string]*limiter{}
 )
 
 var configTemplate = `zone "{{ .ZoneFQDN }}" IN {
@@ -143,13 +158,29 @@ func (cnameParams cnameRecordParams) isValid() bool {
 
 // createZone is the echo handler for registering a zone.
 // It returns
-// - http423 if the zone is already taken
 // - http202 and an auth_key if the zone was registered successfully
+// - http423 if the zone is already taken
+// - http429 if more than one zone is registered by the same IP within 24h
 func createZone(c echo.Context) error {
+	remote := c.Request().RemoteAddr
+	parts := strings.Split(remote, ":")
+	addr := strings.Join(parts[:len(parts)-1], ":")
+
+	limitMutexRegister.Lock()
+	defer limitMutexRegister.Unlock()
+
+	lastRegistration, ok := limitRegistrations[addr]
+	if ok {
+		if time.Since(lastRegistration) < time.Duration(time.Hour*24) {
+			log.Printf("warning: registration limit reached for: %s\n", addr)
+			return echo.NewHTTPError(429, "only one zone registration per day, please")
+		}
+	}
+
 	zone := new(zone)
 	err := c.Bind(zone)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "request parameters malformed!")
+		return echo.NewHTTPError(http.StatusBadRequest, "request parameters malformed")
 	}
 
 	// If a corresponding key-file already exists, the zone is not available.
@@ -174,16 +205,36 @@ func createZone(c echo.Context) error {
 
 	// Add auth-key to response and return it.
 	zone.AuthKey = key
+
+	// Remember the timestamp for rate-limiting.
+	limitRegistrations[addr] = time.Now()
+
 	return c.JSON(http.StatusAccepted, zone)
 }
 
 // createUpdateOrDeleteRecord is the echo handler for adding/update records.
 // It returns
-// - http401 if the authentication failed
-// - http400 if the request was malformed
 // - http200 if the record was added/updated successfully
+// - http400 if the request was malformed
+// - http401 if the authentication failed
 func createUpdateOrDeleteRecord(c echo.Context) error {
 	cionHeaders := c.Get("cion_headers").(my_middleware.CionHeaders)
+
+	limitMutexUpdates.Lock()
+	key := cionHeaders.AuthKey
+	l, ok := limitUpdates[key]
+	if !ok {
+		limitUpdates[key] = &limiter{
+			Limiter: rate.NewLimiter(1, 10),
+		}
+		l = limitUpdates[key]
+	}
+	allowed := !l.Limiter.Allow()
+	limitMutexUpdates.Unlock()
+	if allowed {
+		log.Printf("warning: client reached update limit: %s\n", c.Request().RemoteAddr)
+		return echo.NewHTTPError(429, "one update per second with max burst of ten, please")
+	}
 
 	if cionHeaders.UpdateType != "" {
 		if strings.ToLower(cionHeaders.UpdateType) == "a" {
