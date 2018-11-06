@@ -173,7 +173,13 @@ func createZone(c echo.Context) error {
 	if ok {
 		if time.Since(lastRegistration) < time.Duration(time.Hour*24) {
 			log.Printf("warning: registration limit reached for: %s\n", addr)
-			return echo.NewHTTPError(429, "only one zone registration per day, please")
+			return echo.NewHTTPError(
+				429,
+				fmt.Sprintf(
+					"next registration is possiblein %s",
+					time.Duration(time.Hour*24)-time.Since(lastRegistration),
+				),
+			)
 		}
 	}
 
@@ -187,7 +193,7 @@ func createZone(c echo.Context) error {
 	filePath := filepath.Join(CionKeyDir, zone.Zone+".key")
 	_, err = os.Stat(filePath)
 	if err == nil {
-		return echo.NewHTTPError(http.StatusLocked, "")
+		return echo.NewHTTPError(http.StatusLocked, "namespace already occupied")
 	}
 
 	// Generate a unique authentication key via sha256(uuid4())
