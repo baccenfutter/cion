@@ -176,8 +176,8 @@ func createZone(c echo.Context) error {
 			return echo.NewHTTPError(
 				429,
 				fmt.Sprintf(
-					"next registration is possiblein %s",
-					time.Duration(time.Hour*24)-time.Since(lastRegistration),
+					"next registration is possible in %s",
+					(time.Duration(time.Hour*24)-time.Since(lastRegistration)).Round(time.Second*1),
 				),
 			)
 		}
