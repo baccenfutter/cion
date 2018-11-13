@@ -65,6 +65,7 @@ type (
 
 var (
 	// Some regular expressions for field validation.
+	validZoneName = regexp.MustCompile(`^([a-zA-Z0-9\-]+[a-zA-Z0-9\-]*){1,61}`)
 	validARecord  = regexp.MustCompile(`^([a-zA-Z0-9\-]+[a-zA-Z0-9]*){1,61}$`)
 	validService  = regexp.MustCompile(`^([a-zA-Z0-9]+[a-zA-Z0-9\-]*){1,61}$`)
 	validProto    = regexp.MustCompile(`^([a-zA-Z0-9]*){1,16}$`)
@@ -194,6 +195,10 @@ func createZone(c echo.Context) error {
 	_, err = os.Stat(filePath)
 	if err == nil {
 		return echo.NewHTTPError(http.StatusLocked, "namespace already occupied")
+	}
+
+	if !validZoneName.MatchString(zone.Zone) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid charachters")
 	}
 
 	// Generate a unique authentication key via sha256(uuid4())
@@ -552,4 +557,30 @@ func deleteCNAMERecord(c echo.Context, zone string) error {
 	}
 
 	return c.String(http.StatusAccepted, string(out))
+}
+
+func getRecordList(c echo.Context) error {
+	cionHeaders := c.Get("cion_headers").(my_middleware.CionHeaders)
+
+	limitMutexUpdates.Lock()
+	key := cionHeaders.AuthKey
+	l, ok := limitUpdates[key]
+	if !ok {
+		limitUpdates[key] = &limiter{
+			Limiter: rate.NewLimiter(1, 10),
+		}
+		l = limitUpdates[key]
+	}
+	allowed := !l.Limiter.Allow()
+	limitMutexUpdates.Unlock()
+	if allowed {
+		log.Printf("warning: client reached request limit: %s\n", c.Request().RemoteAddr)
+		return echo.NewHTTPError(429, "one request per second with max burst of ten, please")
+	}
+
+	out, err := exec.Command("cion_list_zone", cionHeaders.Zone).Output()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	return c.Blob(http.StatusOK, "text/plain", out)
 }

@@ -63,6 +63,7 @@ func ListenAndServe() {
 		my_middleware.Version(),
 	)
 	g.POST("/:zone", createUpdateOrDeleteRecord)
+	g.GET("/:zone", getRecordList)
 
 	e.Logger.Fatal(e.Start(":80"))
 }

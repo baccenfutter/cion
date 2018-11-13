@@ -1,0 +1,11 @@
+#!/bin/bash
+
+CION_ROOT_DOMAIN="${CION_ROOT_DOMAIN:-foo.bar}"
+ZONE="$1"
+
+if [[ -z $ZONE ]]; then
+    >&2 echo "Missing argument: zone"
+fi
+
+dig @localhost ${CION_ROOT_DOMAIN} AXFR |\
+    egrep "^.*\.${ZONE}\.${CION_ROOT_DOMAIN}\.."
