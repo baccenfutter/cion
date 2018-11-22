@@ -167,18 +167,20 @@ func createZone(c echo.Context) error {
 	parts := strings.Split(remote, ":")
 	addr := strings.Join(parts[:len(parts)-1], ":")
 
+	rateLimit := time.Hour * 24
+
 	limitMutexRegister.Lock()
 	defer limitMutexRegister.Unlock()
 
 	lastRegistration, ok := limitRegistrations[addr]
 	if ok {
-		if time.Since(lastRegistration) < time.Duration(time.Hour*24) {
+		if time.Since(lastRegistration) < time.Duration(rateLimit) {
 			log.Printf("warning: registration limit reached for: %s\n", addr)
 			return echo.NewHTTPError(
 				429,
 				fmt.Sprintf(
 					"next registration is possible in %s",
-					(time.Duration(time.Hour*24)-time.Since(lastRegistration)).Round(time.Second*1),
+					(time.Duration(rateLimit)-time.Since(lastRegistration)).Round(time.Second*1),
 				),
 			)
 		}
