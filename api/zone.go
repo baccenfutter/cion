@@ -176,11 +176,11 @@ func createZone(c echo.Context) error {
 	if ok {
 		if time.Since(lastRegistration) < time.Duration(rateLimit) {
 			log.Printf("warning: registration limit reached for: %s\n", addr)
+			d := (time.Duration(rateLimit) - time.Since(lastRegistration)).Round(time.Second)
 			return echo.NewHTTPError(
 				429,
 				fmt.Sprintf(
-					"next registration is possible in %s",
-					(time.Duration(rateLimit)-time.Since(lastRegistration)).Round(time.Second*1),
+					"next registration is possible in %02dh%02dm%02ds", (d/time.Hour), (d/time.Minute), (d/time.Second),
 				),
 			)
 		}
