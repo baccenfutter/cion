@@ -136,6 +136,18 @@ else
 fi
 
 #
+# Patch cion-tool.sh
+#
+echo "Patch cion-tool.sh to have the right defaults..."
+if [[ -n "${CION_WEB_PORT}" ]]; then
+    SED_CION_WEB_URL="${CION_WEB_PROTO}:\/\/${CION_WEB_ADDRESS}:${CION_WEB_PORT}"
+else
+    SED_CION_WEB_URL="${CION_WEB_PROTO}:\/\/${CION_WEB_ADDRESS}"
+fi
+sed -e "s/TPL_CION_WEB_URL/${SED_CION_WEB_URL}/" /docker/cion-tool.sh > /public/cion-tool.sh
+echo "[DONE]"
+
+#
 # Start named.
 #
 echo "Start named... "

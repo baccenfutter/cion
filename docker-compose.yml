@@ -13,7 +13,15 @@ ns:
   environment:
     CION_ROOT_DOMAIN: foo.bar
     CION_WEB_ADDRESS: 127.0.0.1
+    # set the port if not default
+    CION_WEB_PORT: 1234
+    # http/https
+    CION_WEB_PROTO: http
     CION_NS1_ADDRESS: 127.0.0.1
+    # set the port if not default
+    CION_NS1_PORT: 5553
     CION_NS2_ADDRESS: 127.0.0.1
+    # set the port if not default
+    CION_NS2_PORT: 5553
     CION_NS1_HOSTNAME: ns1
     CION_NS2_HOSTNAME: ns2

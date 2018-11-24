@@ -56,6 +56,9 @@ func ListenAndServe() {
 
 	e.GET("/", landingpage)
 	e.File("/favicon.ico", "/public/favicon.ico")
+	e.GET("/downloads/cion-tool.sh", func(c echo.Context) error {
+		return c.Attachment("/public/cion-tool.sh", "cion-tool.sh")
+	})
 	e.PUT("/register", createZone)
 
 	g := e.Group("/zone",
