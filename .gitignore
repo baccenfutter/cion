@@ -471,3 +471,5 @@ ASALocalRun/
 
 .cion_*/
 cion
+
+public/cion-tool.sh
